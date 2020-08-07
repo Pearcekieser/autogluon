@@ -108,8 +108,9 @@ class AbstractFeatureGenerator:
         return X
 
     # TODO: Save this to disk and remove from memory if large categoricals!
-    @calculate_time
     def fit_transform(self, X: DataFrame, y=None, banned_features=None, fix_categoricals=False, drop_duplicates=True):
+        print('fit_transform')
+        print(X)
         self.fit = False
         X_len = len(X)
         self.pre_memory_usage = self.get_approximate_df_mem_usage(X, sample_ratio=0.2).sum()
@@ -119,16 +120,27 @@ class AbstractFeatureGenerator:
         if pre_memory_usage_percent > 0.05:
             logger.warning(f'Warning: Data size prior to feature transformation consumes {round(pre_memory_usage_percent*100, 1)}% of available memory. Consider increasing memory or subsampling the data to avoid instability.')
 
+        print(f'self.features_to_remove: {self.features_to_remove}')
         if banned_features:
             self.banned_features = banned_features
             self.features_to_remove += self.banned_features
+        print(f'self.features_to_remove: {self.features_to_remove}')
         X_index = copy.deepcopy(X.index)
         self.get_feature_types(X)
+        print('before features_to_remove')
+        print(f'self.features_to_remove: {self.features_to_remove}')
+        print(X)
         X = X.drop(self.features_to_remove, axis=1, errors='ignore')
+        print('features_to_remove')
+        print(X)
         self.features_init_to_keep = copy.deepcopy(list(X.columns))
         self.features_init_types = X.dtypes.to_dict()
         X.reset_index(drop=True, inplace=True)
+        print('before generate_features')
+        print(X)
         X_features = self.generate_features(X)
+        print('after generate_features')
+        print(X_features)
         for column in X_features:
             unique_value_count = len(X_features[column].unique())
             if unique_value_count == 1:
@@ -138,6 +150,8 @@ class AbstractFeatureGenerator:
 
         self.features_binned = list(set(self.features_binned) - set(self.features_to_remove_post))
         self.features_binned_mapping = self.generate_bins(X_features, self.features_binned)
+        print('self.features_binned_mapping')
+        print(self.features_binned_mapping)
         for column in self.features_binned:  # TODO: Should binned columns be continuous or categorical if they were initially continuous? (Currently categorical)
             X_features[column] = self.bin_column(series=X_features[column], mapping=self.features_binned_mapping[column])
             # print(X_features[column].value_counts().sort_index())
@@ -345,6 +359,7 @@ class AbstractFeatureGenerator:
             # print(num_unique, '\t', num_unique_duplicates, '\t', unique_ratio, '\t', type_family, '\t', column,)
 
             if num_unique == 1:
+                print(f'Marked feature: {column}')
                 mark_for_removal = True
 
             # if num_unique == num_rows:
@@ -367,6 +382,7 @@ class AbstractFeatureGenerator:
             # print(is_nlp, '\t', column)
 
             if mark_for_removal:
+                print(f'append remove: {column}')
                 self.features_to_remove.append(column)
             else:
                 self.feature_type_family[type_family].append(column)

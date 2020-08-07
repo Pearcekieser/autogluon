@@ -174,6 +174,8 @@ class DefaultLearner(AbstractLearner):
             X_test = X_super.tail(len(X_test)).set_index(X_test.index)
             del X_super
         else:
+            print('before fit_transform')
+            print(X)
             X = self.feature_generator.fit_transform(X, banned_features=self.submission_columns, drop_duplicates=False)
 
         return X, y, X_test, y_test, holdout_frac, num_bagging_folds

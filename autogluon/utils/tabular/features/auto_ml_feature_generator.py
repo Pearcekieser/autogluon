@@ -8,6 +8,7 @@ import psutil
 from pandas import DataFrame
 
 from .abstract_feature_generator import AbstractFeatureGenerator
+from .add_datepart_helper import add_datepart
 from .vectorizers import get_ngram_freq, downscale_vectorizer
 from .vectorizers import vectorizer_auto_ml_default
 
@@ -32,6 +33,8 @@ class AutoMLFeatureGenerator(AbstractFeatureGenerator):
 
     # TODO: Parallelize with decorator!
     def generate_features(self, X: DataFrame):
+        print('Start Generate Features')
+        print(self.enable_datetime_features)
         X_features = pd.DataFrame(index=X.index)
         for column in X.columns:
             if X[column].dtype.name == 'object':
@@ -64,10 +67,19 @@ class AutoMLFeatureGenerator(AbstractFeatureGenerator):
             X_features = X_features.join(X_text_features_combined)
 
         if self.enable_datetime_features and self.features_datetime:
+            print('GOTHERE')
             for datetime_feature in self.features_datetime:
                 X_features[datetime_feature] = pd.to_datetime(X[datetime_feature])
                 X_features[datetime_feature] = pd.to_numeric(X_features[datetime_feature])  # TODO: Use actual date info
-                # TODO: Add fastai date features
+                
+                print(datetime_feature)
+                print(X[datetime_feature])
+                date_features = add_datepart(series=X[datetime_feature], field_name=datetime_feature, prefix=datetime_feature)
+                print('date_features')
+                print(date_features)
+                X_features = X_features.join(date_features)
+                print('X_features')
+                print(X_features)
 
         if self.enable_nlp_features and self.features_nlp:
             # Combine Text Fields
